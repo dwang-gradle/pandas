@@ -1,29 +1,38 @@
 name: Develocity Python Scan
 
-# Runs a small pytest slice under the official Develocity Python agent, which
-# auto-publishes a Build Scan. Manually triggered. Targets a SELF-HOSTED runner
-# on the machine where Develocity (http://localhost:24200) is reachable and the
-# access key lives in ~/.gradle/develocity/keys.properties.
+# Builds pandas from source and runs a real pandas test slice under the official
+# Develocity Python agent, which auto-publishes a Build Scan. Manually triggered.
+# Targets a SELF-HOSTED runner on the machine where Develocity
+# (http://localhost:24200) is reachable and the access key lives in
+# ~/.gradle/develocity/keys.properties.
 on:
   workflow_dispatch:
 
 permissions: {}
 
 jobs:
-  pytest-scan:
+  build-and-scan:
     runs-on: [self-hosted]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create venv + install Develocity agent + pytest
+      - name: Create venv + install build/test deps + Develocity agent
         run: |
           python3 -m venv .ci-venv
           .ci-venv/bin/pip install --upgrade pip
-          .ci-venv/bin/pip install pytest \
+          # Build backend deps (for editable --no-build-isolation)
+          .ci-venv/bin/pip install "meson-python>=0.19,<1" "meson>=1.2.3,<2" wheel \
+            "Cython>3.1.0,<4" "numpy>=2.0,!=2.5.0" "versioneer[toml]" ninja
+          # Runtime + test deps (pyarrow is required just to parse pandas'
+          # filterwarnings config under --strict-config)
+          .ci-venv/bin/pip install pytest hypothesis pytz python-dateutil tzdata pyarrow
+          # Official Develocity Python agent
+          .ci-venv/bin/pip install \
             https://develocity-python-pkgs.gradle.com/develocity_agent-0.10.1-py3-none-any.whl
 
-      - name: Run tests (agent auto-publishes a Build Scan)
-        # .develocity.py defaults to http://localhost:24200 and reads the local
-        # access key, so no repo secrets/vars are needed on a self-hosted runner.
-        run: .ci-venv/bin/pytest -c ci-pytest.ini test_ci_smoke.py -v
+      - name: Build pandas (editable, compiles Cython/C)
+        run: PATH="$PWD/.ci-venv/bin:$PATH" .ci-venv/bin/pip install -e . --no-build-isolation
+
+      - name: Run a real pandas test slice (agent auto-publishes a Build Scan)
+        run: .ci-venv/bin/pytest pandas/tests/test_flags.py -v

@@ -1,0 +1,29 @@
+name: Develocity Python Scan
+
+# Runs a small pytest slice under the official Develocity Python agent, which
+# auto-publishes a Build Scan. Manually triggered. Targets a SELF-HOSTED runner
+# on the machine where Develocity (http://localhost:24200) is reachable and the
+# access key lives in ~/.gradle/develocity/keys.properties.
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  pytest-scan:
+    runs-on: [self-hosted]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create venv + install Develocity agent + pytest
+        run: |
+          python3 -m venv .ci-venv
+          .ci-venv/bin/pip install --upgrade pip
+          .ci-venv/bin/pip install pytest \
+            https://develocity-python-pkgs.gradle.com/develocity_agent-0.10.1-py3-none-any.whl
+
+      - name: Run tests (agent auto-publishes a Build Scan)
+        # .develocity.py defaults to http://localhost:24200 and reads the local
+        # access key, so no repo secrets/vars are needed on a self-hosted runner.
+        run: .ci-venv/bin/pytest test_ci_smoke.py -v

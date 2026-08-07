@@ -1,0 +1,27 @@
+name: Hello CI
+
+# Minimal manually-triggered workflow to verify GitHub Actions works on this fork.
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  hello:
+    name: Smoke check
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show environment
+        run: |
+          echo "Fork CI is running 🎉"
+          echo "Repo:   $GITHUB_REPOSITORY"
+          echo "Ref:    $GITHUB_REF"
+          echo "Runner: $(uname -srm)"
+          python3 --version
+
+      - name: Trivial assertion
+        run: |
+          python3 -c "assert 1 + 1 == 2; print('GitHub Actions works on this fork ✅')"

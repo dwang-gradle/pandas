@@ -32,7 +32,13 @@ jobs:
             https://develocity-python-pkgs.gradle.com/develocity_agent-0.10.1-py3-none-any.whl
 
       - name: Build pandas (editable, compiles Cython/C)
-        run: PATH="$PWD/.ci-venv/bin:$PATH" .ci-venv/bin/pip install -e . --no-build-isolation
+        # This fork has no tags, so versioneer would report "0+untagged...",
+        # which trips pyarrow's pandas-version check (a UserWarning that pandas'
+        # strict "filterwarnings=error" config turns into a fatal error). Give
+        # versioneer a real version so the build reports a valid pandas version.
+        run: |
+          git tag -f v3.0.0.dev0
+          PATH="$PWD/.ci-venv/bin:$PATH" .ci-venv/bin/pip install -e . --no-build-isolation
 
       - name: Run a real pandas test slice (agent auto-publishes a Build Scan)
         run: .ci-venv/bin/pytest pandas/tests/test_flags.py -v

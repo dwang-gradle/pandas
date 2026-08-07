@@ -26,4 +26,4 @@ jobs:
       - name: Run tests (agent auto-publishes a Build Scan)
         # .develocity.py defaults to http://localhost:24200 and reads the local
         # access key, so no repo secrets/vars are needed on a self-hosted runner.
-        run: .ci-venv/bin/pytest test_ci_smoke.py -v
+        run: .ci-venv/bin/pytest -c ci-pytest.ini test_ci_smoke.py -v

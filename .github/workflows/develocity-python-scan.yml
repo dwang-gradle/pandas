@@ -1,30 +1,59 @@
 name: Develocity Python Scan
 
-# Builds pandas from source and runs a real pandas test slice under the official
-# Develocity Python agent, which auto-publishes a Build Scan to
+# Builds pandas and runs a real pandas test slice under the official Develocity
+# Python agent, with Develocity Artifact Cache RESTORE enabled for pip (no store,
+# so the smoke test does not pollute the cache). Publishes Build Scans to
 # https://develocity-field.gradle.com. Manually triggered.
 #
-# Requires a repo secret DEVELOCITY_ACCESS_KEY in the form:
-#   develocity-field.gradle.com=<access-key>
+# Requires repo secret DEVELOCITY_ACCESS_KEY = develocity-field.gradle.com=<key>
 on:
   workflow_dispatch:
 
 permissions: {}
 
+env:
+  DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+  # Shared pip cache dir: Artifact Cache restores into it, pip installs from it,
+  # and the agent reads restore metrics from it (see .develocity.py).
+  PIP_CACHE_DIR: ${{ github.workspace }}/.pip-cache
+  DVAC_CLI_VERSION: "1.5.0"
+
 jobs:
   build-and-scan:
     runs-on: ubuntu-24.04
-    # Job-level so both the build step and the test step can publish scans.
-    env:
-      DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Java (required by the Artifact Cache CLI)
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      - name: Download Develocity Artifact Cache CLI
+        run: |
+          curl -sfL -o dvac-cli.jar \
+            "https://docs.gradle.com/downloads/develocity-artifact-cache-cli/develocity-artifact-cache-cli-${DVAC_CLI_VERSION}.jar"
+
+      - name: Artifact Cache restore (pip)
+        # Restore-only: NO store step, so this smoke test cannot pollute the cache.
+        # continue-on-error so the scan still publishes even if AC restore has issues
+        # (pip Artifact Cache is Beta; this run tells us if it's enabled server-side).
+        continue-on-error: true
+        run: |
+          mkdir -p "$PIP_CACHE_DIR"
+          java -jar dvac-cli.jar restore \
+            --dv-server=https://develocity-field.gradle.com \
+            --image-name=pandas-ac-test \
+            --autodetect=PIP \
+            --pip-home="$PIP_CACHE_DIR" \
+            --verbose
 
       - name: Create venv + install build/test deps + Develocity agent
         run: |

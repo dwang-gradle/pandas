@@ -1,10 +1,11 @@
 name: Develocity Python Scan
 
 # Builds pandas from source and runs a real pandas test slice under the official
-# Develocity Python agent, which auto-publishes a Build Scan. Manually triggered.
-# Targets a SELF-HOSTED runner on the machine where Develocity
-# (http://localhost:24200) is reachable and the access key lives in
-# ~/.gradle/develocity/keys.properties.
+# Develocity Python agent, which auto-publishes a Build Scan to
+# https://develocity-field.gradle.com. Manually triggered.
+#
+# Requires a repo secret DEVELOCITY_ACCESS_KEY in the form:
+#   develocity-field.gradle.com=<access-key>
 on:
   workflow_dispatch:
 
@@ -12,30 +13,32 @@ permissions: {}
 
 jobs:
   build-and-scan:
-    runs-on: [self-hosted]
+    runs-on: ubuntu-24.04
+    # Job-level so both the build step and the test step can publish scans.
+    env:
+      DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Create venv + install build/test deps + Develocity agent
         run: |
-          python3 -m venv .ci-venv
+          python -m venv .ci-venv
           .ci-venv/bin/pip install --upgrade pip
-          # Build backend deps (for editable --no-build-isolation)
           .ci-venv/bin/pip install "meson-python>=0.19,<1" "meson>=1.2.3,<2" wheel \
             "Cython>3.1.0,<4" "numpy>=2.0,!=2.5.0" "versioneer[toml]" ninja
-          # Runtime + test deps (pyarrow is required just to parse pandas'
-          # filterwarnings config under --strict-config)
           .ci-venv/bin/pip install pytest hypothesis pytz python-dateutil tzdata pyarrow
-          # Official Develocity Python agent
           .ci-venv/bin/pip install \
             https://develocity-python-pkgs.gradle.com/develocity_agent-0.10.1-py3-none-any.whl
 
       - name: Build pandas (editable, compiles Cython/C)
-        # This fork has no tags, so versioneer would report "0+untagged...",
-        # which trips pyarrow's pandas-version check (a UserWarning that pandas'
-        # strict "filterwarnings=error" config turns into a fatal error). Give
-        # versioneer a real version so the build reports a valid pandas version.
+        # This fork has no tags, so give versioneer a real version (otherwise
+        # pyarrow's version check warns and pandas' strict config makes it fatal).
         run: |
           git tag -f v3.0.0.dev0
           PATH="$PWD/.ci-venv/bin:$PATH" .ci-venv/bin/pip install -e . --no-build-isolation

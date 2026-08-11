@@ -1,11 +1,11 @@
 name: Develocity Python Scan
 
 # Builds pandas from source and runs a real pandas test slice under the official
-# Develocity Python agent, which auto-publishes a Build Scan to
-# https://develocity-field.gradle.com. Manually triggered.
+# Develocity Python agent, which auto-publishes a Build Scan. Manually triggered.
+# A matrix publishes the same build to BOTH Develocity servers.
 #
-# Requires a repo secret DEVELOCITY_ACCESS_KEY in the form:
-#   develocity-field.gradle.com=<access-key>
+# Requires a repo secret DEVELOCITY_ACCESS_KEY holding both hosts, e.g.:
+#   develocity-field.gradle.com=<key1>;ge-build-cache-dogfooding.grdev.net=<key2>
 on:
   workflow_dispatch:
 
@@ -13,10 +13,19 @@ permissions: {}
 
 jobs:
   build-and-scan:
+    strategy:
+      fail-fast: false
+      matrix:
+        develocity_url:
+          - https://develocity-field.gradle.com
+          - https://ge-build-cache-dogfooding.grdev.net
+    name: build-and-scan (${{ matrix.develocity_url }})
     runs-on: ubuntu-24.04
-    # Job-level so both the build step and the test step can publish scans.
     env:
+      # The agent picks the key matching DEVELOCITY_URL's host from this
+      # semicolon-separated multi-host value.
       DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+      DEVELOCITY_URL: ${{ matrix.develocity_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

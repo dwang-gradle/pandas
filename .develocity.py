@@ -16,9 +16,9 @@ def develocity_configuration(config):
     if not os.environ.get("DEVELOCITY_ACCESS_KEY"):
         config.access_key = from_properties_file(in_gradle_user_home())
 
-    # --- Artifact Cache experiment (step 2) ---
+    # --- Artifact Cache experiment (step 3) ---
     # Identify these builds for future discovery.
-    config.tags.add("ac-step-2")
+    config.tags.add("ac-step-3")
     # Attach Artifact Cache restore metrics to the build for later analysis.
     capture_artifact_cache_metrics(config)
     return config

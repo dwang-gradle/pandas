@@ -1,8 +1,8 @@
 name: Develocity Python Scan
 
 # Builds pandas and runs a real pandas test slice under the official Develocity
-# Python agent, with Develocity Artifact Cache RESTORE enabled for pip (no store,
-# so the smoke test does not pollute the cache). Publishes Build Scans to
+# Python agent, with Develocity Artifact Cache RESTORE + STORE enabled for pip
+# (Step 3: populate the empty cache). Publishes Build Scans to
 # https://dv-helm-cluster-unstable-release.grdev.net. Manually triggered.
 #
 # Requires repo secret DEVELOCITY_ACCESS_KEY = dv-helm-cluster-unstable-release.grdev.net=<key>
@@ -43,9 +43,9 @@ jobs:
             "https://docs.gradle.com/downloads/develocity-artifact-cache-cli/develocity-artifact-cache-cli-${DVAC_CLI_VERSION}.jar"
 
       - name: Artifact Cache restore (pip)
-        # Restore-only: NO store step, so this smoke test cannot pollute the cache.
-        # continue-on-error so the scan still publishes even if AC restore has issues
-        # (pip Artifact Cache is Beta; this run tells us if it's enabled server-side).
+        # Restore before the pip installs. Also sets up the pip download journal
+        # that the store step (end of job) uses to know which artifacts to cache.
+        # continue-on-error so the scan still publishes even if AC restore has issues.
         continue-on-error: true
         run: |
           mkdir -p "$PIP_CACHE_DIR"
@@ -75,3 +75,14 @@ jobs:
 
       - name: Run a real pandas test slice (agent auto-publishes a Build Scan)
         run: .ci-venv/bin/pytest pandas/tests/test_flags.py -v
+
+      - name: Artifact Cache store (pip)
+        # Step 3: populate the (empty) cache with everything pip downloaded during
+        # this build, seeding image "pandas-ac-navigator" for the Step 4 full-hit run.
+        run: |
+          java -jar dvac-cli.jar store \
+            --dv-server=https://dv-helm-cluster-unstable-release.grdev.net \
+            --image-name=pandas-ac-navigator \
+            --autodetect=PIP \
+            --pip-home="$PIP_CACHE_DIR" \
+            --verbose

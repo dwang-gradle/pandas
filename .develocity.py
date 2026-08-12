@@ -4,9 +4,9 @@ from develocity.config import from_properties_file, in_gradle_user_home
 
 
 def develocity_configuration(config):
-    # URL: from env if provided, else the Gradle field instance. `or` treats an
-    # empty value (e.g. an undefined GitHub Actions var) as unset.
-    url = os.environ.get("DEVELOCITY_URL") or "https://develocity-field.gradle.com"
+    # URL: from env if provided, else the unstable-release instance. `or` treats
+    # an empty value (e.g. an undefined GitHub Actions var) as unset.
+    url = os.environ.get("DEVELOCITY_URL") or "https://dv-helm-cluster-unstable-release.grdev.net"
     config.develocity_url = url
     config.allow_insecure_protocol = url.startswith("http://")
 

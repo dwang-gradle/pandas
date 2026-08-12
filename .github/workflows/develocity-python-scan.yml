@@ -3,9 +3,9 @@ name: Develocity Python Scan
 # Builds pandas and runs a real pandas test slice under the official Develocity
 # Python agent, with Develocity Artifact Cache RESTORE enabled for pip (no store,
 # so the smoke test does not pollute the cache). Publishes Build Scans to
-# https://develocity-field.gradle.com. Manually triggered.
+# https://dv-helm-cluster-unstable-release.grdev.net. Manually triggered.
 #
-# Requires repo secret DEVELOCITY_ACCESS_KEY = develocity-field.gradle.com=<key>
+# Requires repo secret DEVELOCITY_ACCESS_KEY = dv-helm-cluster-unstable-release.grdev.net=<key>
 on:
   workflow_dispatch:
 
@@ -13,6 +13,7 @@ permissions: {}
 
 env:
   DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+  DEVELOCITY_URL: https://dv-helm-cluster-unstable-release.grdev.net
   # Shared pip cache dir: Artifact Cache restores into it, pip installs from it,
   # and the agent reads restore metrics from it (see .develocity.py).
   PIP_CACHE_DIR: ${{ github.workspace }}/.pip-cache
@@ -49,8 +50,8 @@ jobs:
         run: |
           mkdir -p "$PIP_CACHE_DIR"
           java -jar dvac-cli.jar restore \
-            --dv-server=https://develocity-field.gradle.com \
-            --image-name=pandas-ac-test \
+            --dv-server=https://dv-helm-cluster-unstable-release.grdev.net \
+            --image-name=pandas-ac-navigator \
             --autodetect=PIP \
             --pip-home="$PIP_CACHE_DIR" \
             --verbose

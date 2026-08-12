@@ -2,7 +2,8 @@ name: Develocity Python Scan
 
 # Builds pandas and runs a real pandas test slice under the official Develocity
 # Python agent, with Develocity Artifact Cache RESTORE + STORE enabled for pip
-# (Step 3: populate the empty cache). Publishes Build Scans to
+# (Step 4: full cache hit — restore from the seeded cache; expect 0 stored).
+# Publishes Build Scans to
 # https://dv-helm-cluster-unstable-release.grdev.net. Manually triggered.
 #
 # Requires repo secret DEVELOCITY_ACCESS_KEY = dv-helm-cluster-unstable-release.grdev.net=<key>
@@ -77,8 +78,8 @@ jobs:
         run: .ci-venv/bin/pytest pandas/tests/test_flags.py -v
 
       - name: Artifact Cache store (pip)
-        # Step 3: populate the (empty) cache with everything pip downloaded during
-        # this build, seeding image "pandas-ac-navigator" for the Step 4 full-hit run.
+        # Step 4 full cache hit: everything was restored, so the store should find
+        # all artifacts already present and upload nothing (0 stored).
         run: |
           java -jar dvac-cli.jar store \
             --dv-server=https://dv-helm-cluster-unstable-release.grdev.net \

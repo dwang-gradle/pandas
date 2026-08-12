@@ -2,10 +2,10 @@ name: Develocity Python Scan
 
 # Builds pandas from source and runs a real pandas test slice under the official
 # Develocity Python agent, which auto-publishes a Build Scan to
-# https://ge-build-cache-dogfooding.grdev.net. Manually triggered.
+# https://dv-helm-cluster-unstable-release.grdev.net. Manually triggered.
 #
 # Requires a repo secret DEVELOCITY_ACCESS_KEY in the form:
-#   ge-build-cache-dogfooding.grdev.net=<access-key>
+#   dv-helm-cluster-unstable-release.grdev.net=<access-key>
 on:
   workflow_dispatch:
 
@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
-      DEVELOCITY_URL: https://ge-build-cache-dogfooding.grdev.net
+      DEVELOCITY_URL: https://dv-helm-cluster-unstable-release.grdev.net
     steps:
       - name: Checkout
         uses: actions/checkout@v4

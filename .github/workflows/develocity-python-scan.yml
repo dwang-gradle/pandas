@@ -2,8 +2,8 @@ name: Develocity Python Scan
 
 # Builds pandas and runs a real pandas test slice under the official Develocity
 # Python agent, with Develocity Artifact Cache RESTORE + STORE enabled for pip
-# (Step 4: full cache hit — restore from the seeded cache; expect 0 stored).
-# Publishes Build Scans to
+# (Step 5: partial cache hit — one dependency version changed; expect only the
+# changed dependency downloaded and stored). Publishes Build Scans to
 # https://dv-helm-cluster-unstable-release.grdev.net. Manually triggered.
 #
 # Requires repo secret DEVELOCITY_ACCESS_KEY = dv-helm-cluster-unstable-release.grdev.net=<key>
@@ -63,7 +63,7 @@ jobs:
           .ci-venv/bin/pip install --upgrade pip
           .ci-venv/bin/pip install "meson-python>=0.19,<1" "meson>=1.2.3,<2" wheel \
             "Cython>3.1.0,<4" "numpy>=2.0,!=2.5.0" "versioneer[toml]" ninja
-          .ci-venv/bin/pip install pytest hypothesis pytz python-dateutil tzdata pyarrow
+          .ci-venv/bin/pip install pytest hypothesis pytz==2024.1 python-dateutil tzdata pyarrow
           .ci-venv/bin/pip install \
             https://develocity-python-pkgs.gradle.com/develocity_agent-0.10.1-py3-none-any.whl
 
@@ -78,8 +78,8 @@ jobs:
         run: .ci-venv/bin/pytest pandas/tests/test_flags.py -v
 
       - name: Artifact Cache store (pip)
-        # Step 4 full cache hit: everything was restored, so the store should find
-        # all artifacts already present and upload nothing (0 stored).
+        # Step 5 partial hit: most artifacts restored; the store persists only the
+        # newly-downloaded (changed) dependency's files.
         run: |
           java -jar dvac-cli.jar store \
             --dv-server=https://dv-helm-cluster-unstable-release.grdev.net \
